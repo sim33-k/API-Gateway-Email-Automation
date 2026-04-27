@@ -12,7 +12,7 @@ An end-to-end serverless automation system that processes API Gateway change req
 
 ## The Problem It Solves
 
-Every API Gateway change required a developer to manually open a 600KB+ OpenAPI JSON template, locate or create the correct path block, write the full method configuration including VPC link, NLB URI, CORS headers, request parameters, and Cognito authorizer, then manually update the OPTIONS `Access-Control-Allow-Methods` header and do all of this without introducing a JSON syntax error that would break the entire API Gateway deployment.
+Every API Gateway change required a developer to manually open a large OpenAPI JSON template, locate or create the correct path block, write the full method configuration including VPC link, NLB URI, CORS headers, request parameters, and Cognito authorizer, then manually update the OPTIONS `Access-Control-Allow-Methods` header and do all of this without introducing a JSON syntax error that would break the entire API Gateway deployment.
 
 This automation reduces that entire process to sending an email.
 
