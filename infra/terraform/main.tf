@@ -1,5 +1,30 @@
+terraform {
+  required_version = ">= 1.0"
+
+  required_providers {
+    aws = {
+      source  = "hashicorp/aws"
+      version = "~> 5.0"
+    }
+    tls = {
+      source  = "hashicorp/tls"
+      version = "~> 4.0"
+    }
+  }
+}
+
 provider "aws" {
     region = var.aws_region
+}
+
+resource "tls_private_key" "jenkins" {
+    algorithm = "RSA"
+    rsa_bits  = 4096
+}
+
+resource "aws_key_pair" "jenkins" {
+    key_name   = var.key_pair_name
+    public_key = tls_private_key.jenkins.public_key_openssh
 }
 
 # Security groups
@@ -40,8 +65,8 @@ resource "aws_security_group" "jenkins" {
 resource "aws_instance" "jenkins" {
     ami = var.ami_id
     instance_type = var.instance_type
-    key_name = var.key_pair_name
-    vpc_security_group_ids = [ aws_security_group.jenkins ]
+    key_name = aws_key_pair.jenkins.key_name
+    vpc_security_group_ids = [ aws_security_group.jenkins.id ]
 
     root_block_device {
         volume_size = 10
