@@ -36,3 +36,21 @@ resource "aws_security_group" "jenkins" {
     }
 }
 
+# AWS EC2 for Jenkins
+resource "aws_instance" "jenkins" {
+    ami = var.ami_id
+    instance_type = var.instance_type
+    key_name = var.key_pair_name
+    vpc_security_group_ids = [ aws_security_group.jenkins ]
+
+    root_block_device {
+        volume_size = 10
+        volume_type = "gp3"
+    }
+
+    tags = {
+      name = "jenkins-server"
+    }
+  
+}
+
