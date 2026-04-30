@@ -1,0 +1,13 @@
+jenkins_admin_user: admin
+jenkins_admin_password: "{{ lookup('ansible.builtin.password', playbook_dir ~ '/.generated/jenkins-admin-password chars=ascii_letters,digits length=24') }}"
+jenkins_plugin_manager_version: "2.14.0"
+jenkins_plugins:
+  - configuration-as-code
+  - credentials
+  - git
+  - matrix-auth
+  - plain-credentials
+  - ssh-credentials
+  - workflow-aggregator
+  - job-dsl
+  - cloudbees-bitbucket-branch-source

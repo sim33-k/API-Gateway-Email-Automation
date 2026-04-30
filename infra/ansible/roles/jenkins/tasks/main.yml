@@ -28,12 +28,6 @@
     state: present
     update_cache: yes
 
-- name: Start and enable Jenkins
-  systemd:
-    name: jenkins
-    state: started
-    enabled: true
-
 - name: Install required system packages for Jenkins jobs
   dnf:
     name:
@@ -58,16 +52,68 @@
   args:
     creates: /usr/local/bin/terraform
 
-- name: Wait for Jenkins to create initial password file
-  wait_for:
-    path: /var/lib/jenkins/secrets/initialAdminPassword
-    timeout: 120
+- name: Download Jenkins plugin manager
+  get_url:
+    url: >-
+      https://github.com/jenkinsci/plugin-installation-manager-tool/releases/download/{{ jenkins_plugin_manager_version }}/jenkins-plugin-manager-{{ jenkins_plugin_manager_version }}.jar
+    dest: /usr/local/bin/jenkins-plugin-manager.jar
+    mode: "0755"
 
-- name: Fetch Jenkins initial admin password
-  slurp:
-    src: /var/lib/jenkins/secrets/initialAdminPassword
-  register: jenkins_password
+- name: Render Jenkins plugin list
+  template:
+    src: plugins.txt.j2
+    dest: /tmp/jenkins-plugins.txt
+    mode: "0644"
 
-- name: Print initial admin password
-  debug:
-    msg: "Jenkins initial password: {{ jenkins_password.content | b64decode }}"
+- name: Install Jenkins plugins before first start
+  command: >-
+    java -jar /usr/local/bin/jenkins-plugin-manager.jar
+    --war /usr/share/java/jenkins.war
+    --plugin-file /tmp/jenkins-plugins.txt
+    --plugin-download-directory /var/lib/jenkins/plugins
+  args:
+    creates: /var/lib/jenkins/.plugins-installed
+
+- name: Mark plugins as installed
+  file:
+    path: /var/lib/jenkins/.plugins-installed
+    state: touch
+
+- name: Render Jenkins Configuration as Code file
+  template:
+    src: jenkins.yaml.j2
+    dest: /var/lib/jenkins/jenkins.yaml
+    owner: jenkins
+    group: jenkins
+    mode: "0644"
+
+- name: Configure Jenkins startup options
+  lineinfile:
+    path: /etc/sysconfig/jenkins
+    regexp: '^JENKINS_JAVA_OPTIONS='
+    line: 'JENKINS_JAVA_OPTIONS="-Djenkins.install.runSetupWizard=false -Dcasc.jenkins.config=/var/lib/jenkins/jenkins.yaml"'
+    create: true
+
+- name: Configure Jenkins admin credentials for JCasC
+  lineinfile:
+    path: /etc/sysconfig/jenkins
+    regexp: '^{{ item.key }}='
+    line: '{{ item.key }}="{{ item.value }}"'
+    create: true
+  loop:
+    - { key: 'JENKINS_ADMIN_USER', value: '{{ jenkins_admin_user }}' }
+    - { key: 'JENKINS_ADMIN_PASSWORD', value: '{{ jenkins_admin_password }}' }
+
+- name: Ensure Jenkins plugin directory permissions are correct
+  file:
+    path: /var/lib/jenkins/plugins
+    owner: jenkins
+    group: jenkins
+    recurse: true
+    state: directory
+
+- name: Enable and start Jenkins with automated bootstrap
+  systemd:
+    name: jenkins
+    state: started
+    enabled: true

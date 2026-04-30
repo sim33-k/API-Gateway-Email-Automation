@@ -1,0 +1,13 @@
+jenkins:
+  systemMessage: "Jenkins configured automatically by Ansible."
+  numExecutors: 2
+  mode: NORMAL
+  securityRealm:
+    local:
+      allowsSignup: false
+      users:
+        - id: "${JENKINS_ADMIN_USER}"
+          password: "${JENKINS_ADMIN_PASSWORD}"
+  authorizationStrategy:
+    loggedInUsersCanDoAnything:
+      allowAnonymousRead: false
