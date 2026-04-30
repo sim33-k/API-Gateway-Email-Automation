@@ -1,20 +1,20 @@
 output "jenkins_public_ip" {
   description = "Public IP of Jenkins server"
-  value       = module.jenkins.jenkins_public_ip
+  value       = aws_instance.jenkins.public_ip
 }
 
 output "jenkins_private_key_pem" {
   description = "Private key for Jenkins server"
-  value       = module.jenkins.jenkins_private_key_pem
+  value       = tls_private_key.jenkins.private_key_pem
   sensitive   = true
 }
 
-output "jenkins_security_group_id" {
+output "security_group_id" {
   description = "Security group ID for Jenkins"
-  value       = module.jenkins.security_group_id
+  value       = aws_security_group.jenkins.id
 }
 
-output "jenkins_instance_id" {
+output "instance_id" {
   description = "Jenkins instance ID"
-  value       = module.jenkins.instance_id
+  value       = aws_instance.jenkins.id
 }
