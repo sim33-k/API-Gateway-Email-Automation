@@ -69,12 +69,13 @@ resource "aws_instance" "jenkins" {
     vpc_security_group_ids = [ aws_security_group.jenkins.id ]
 
     root_block_device {
-        volume_size = 10
+        volume_size = 8
         volume_type = "gp3"
     }
 
     tags = {
-      name = "jenkins-server"
+      Name = "jenkins-server"
+      Project = "api-gw-automation"
     }
   
 }
