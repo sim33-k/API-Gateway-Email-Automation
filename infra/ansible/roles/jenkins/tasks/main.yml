@@ -40,7 +40,6 @@
       - python3-pip
       - unzip
       - git
-      - curl
     state: present
 
 - name: Install AWS CLI
