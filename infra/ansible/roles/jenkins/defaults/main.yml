@@ -1,9 +1,19 @@
 jenkins_admin_user: admin
 jenkins_admin_password: "{{ lookup('ansible.builtin.password', playbook_dir ~ '/.generated/jenkins-admin-password chars=ascii_letters,digits length=24') }}"
+jenkins_bitbucket_owner: "your-workspace"
+jenkins_bitbucket_repo: "your-repo"
+jenkins_bitbucket_branch: "develop"
+jenkins_openapi_file_path: "openapi-definition.json"
+jenkins_template_s3_bucket: "your-s3-bucket"
+jenkins_base_branch: "develop"
+jenkins_repo_target_path: "openapi-definition.json"
+jenkins_bitbucket_username: "set-inventory-or-vault"
+jenkins_bitbucket_app_password: "set-inventory-or-vault"
 jenkins_plugin_manager_version: "2.14.0"
 jenkins_plugins:
   - configuration-as-code
   - credentials
+  - credentials-binding
   - git
   - matrix-auth
   - plain-credentials

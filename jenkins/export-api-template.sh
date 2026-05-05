@@ -8,8 +8,8 @@ set -euo pipefail
 #  FILE_PATH_IN_REPO (path to openapi JSON in the repo)
 #  S3_BUCKET, S3_KEY (destination key, e.g. templates/private-qa.json)
 
-: "${BITBUCKET_OWNER:?}")
-: "${BITBUCKET_REPO:?}")
+: "${BITBUCKET_OWNER:?}"
+: "${BITBUCKET_REPO:?}"
 BITBUCKET_BRANCH="${BITBUCKET_BRANCH:-develop}"
 : "${BITBUCKET_USERNAME:?}"
 : "${BITBUCKET_APP_PASSWORD:?}"

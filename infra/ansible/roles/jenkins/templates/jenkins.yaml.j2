@@ -11,3 +11,64 @@ jenkins:
   authorizationStrategy:
     loggedInUsersCanDoAnything:
       allowAnonymousRead: false
+
+jobs:
+  - script: |
+      freeStyleJob('export-api-template-job') {
+        description('Fetches OpenAPI JSON from Bitbucket and uploads it to S3 templates/private-{environment}.json')
+        parameters {
+          choiceParam('ENVIRONMENT', ['qa', 'dev', 'uat', 'prod'], 'Target environment')
+        }
+        steps {
+          shell('''#!/usr/bin/env bash
+set -euo pipefail
+
+case "${ENVIRONMENT}" in
+  qa|dev|uat|prod) ;;
+  *) echo "Unsupported ENVIRONMENT=${ENVIRONMENT}" >&2; exit 1 ;;
+esac
+
+export BITBUCKET_OWNER="${BITBUCKET_OWNER}"
+export BITBUCKET_REPO="${BITBUCKET_REPO}"
+export BITBUCKET_BRANCH="${BITBUCKET_BRANCH}"
+export BITBUCKET_USERNAME="${BITBUCKET_USERNAME}"
+export BITBUCKET_APP_PASSWORD="${BITBUCKET_APP_PASSWORD}"
+export FILE_PATH_IN_REPO="${OPENAPI_FILE_PATH}"
+export S3_BUCKET="${TEMPLATE_S3_BUCKET}"
+export S3_KEY="templates/private-${ENVIRONMENT}.json"
+
+/usr/local/bin/export-api-template.sh
+''')
+        }
+      }
+
+  - script: |
+      freeStyleJob('trigger-api-gw-pr') {
+        description('Downloads patched OpenAPI file from S3, creates feature branch, commits change, and raises Bitbucket PR')
+        parameters {
+          stringParam('PATCHED_S3_KEY', '', 'Patched template S3 key (for example: output/private-qa-patched-20260505.json)')
+        }
+        steps {
+          shell('''#!/usr/bin/env bash
+set -euo pipefail
+
+if [[ -z "${PATCHED_S3_KEY}" ]]; then
+  echo "PATCHED_S3_KEY is required" >&2
+  exit 1
+fi
+
+export BITBUCKET_OWNER="${BITBUCKET_OWNER}"
+export BITBUCKET_REPO="${BITBUCKET_REPO}"
+export BASE_BRANCH="${BASE_BRANCH}"
+export BITBUCKET_USERNAME="${BITBUCKET_USERNAME}"
+export BITBUCKET_APP_PASSWORD="${BITBUCKET_APP_PASSWORD}"
+export S3_BUCKET="${TEMPLATE_S3_BUCKET}"
+export S3_KEY="${PATCHED_S3_KEY}"
+export REPO_TARGET_PATH="${REPO_TARGET_PATH}"
+export PR_TITLE="api-gw-update-$(date +%Y%m%d-%H%M%S)"
+export PR_DESCRIPTION="Automated API Gateway template update from ${PATCHED_S3_KEY}"
+
+/usr/local/bin/raise-api-gw-pr.sh
+''')
+        }
+      }
