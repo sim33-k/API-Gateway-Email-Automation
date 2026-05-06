@@ -12,21 +12,24 @@ An end-to-end serverless automation system that processes API Gateway change req
 
 ## Jenkins Bootstrap
 
-Before the automation can run, provision Jenkins once with the Bitbucket app password secret ID. Replace the secret name below with the AWS Secrets Manager secret that stores the Bitbucket app password.
+### Quick Start
 
-**Prerequisites:**
-- AWS credentials configured locally (e.g., `aws configure` or environment variables `AWS_ACCESS_KEY_ID` and `AWS_SECRET_ACCESS_KEY`)
-- Your AWS credentials must have permission to create EC2 instances, IAM roles, security groups, and key pairs
+1. Copy and customize environment variables:
+   ```bash
+   cp .env.example .env.local
+   # Edit .env.local - add your IP, AMI ID, Groq API key, Bitbucket password
+   ```
 
-**Provision:**
+2. Run the bootstrap script (does everything - creates secrets, provisions infrastructure):
+   ```bash
+   ./bootstrap.sh
+   ```
 
-```bash
-export TF_VAR_jenkins_bitbucket_app_password_secret_id="digiratina-bitbucket-app-password"
-cd "infra/terraform"
-terraform apply
-```
-
-Terraform uses your AWS credentials to create the infrastructure. The Jenkins EC2 instance is attached an IAM role so Jenkins can write to S3 and read the Bitbucket app password from AWS Secrets Manager. No AWS access key or password is stored in the repo.
+That's it. Terraform will:
+- Store your API key and Bitbucket password in AWS Secrets Manager
+- Create all infrastructure (Jenkins, S3, Lambdas, SES, SNS)
+- Configure Jenkins automatically
+- Output the Jenkins URL
 
 ---
 

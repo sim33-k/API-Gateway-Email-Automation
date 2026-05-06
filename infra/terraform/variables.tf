@@ -37,9 +37,15 @@ variable "jenkins_bitbucket_app_password_secret_id" {
 }
 
 variable "groq_api_key_secret_id" {
-	description = "AWS Secrets Manager secret name or ARN that stores the GROQ API key"
+	description = "AWS Secrets Manager secret name for GROQ API key"
 	type        = string
 	default     = "digiratina-groq-api-key"
+}
+
+variable "groq_api_key_value" {
+	description = "The actual GROQ API key value"
+	type        = string
+	sensitive   = true
 }
 
 variable "lambda_parser_name" {
@@ -52,4 +58,10 @@ variable "lambda_patcher_name" {
 	description = "Name of the patcher Lambda function"
 	type        = string
 	default     = "api-gw-json-patcher"
+}
+
+variable "jenkins_bitbucket_app_password_value" {
+	description = "The actual Bitbucket app password value"
+	type        = string
+	sensitive   = true
 }

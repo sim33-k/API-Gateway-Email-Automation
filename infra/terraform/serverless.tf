@@ -1,6 +1,25 @@
 # Get current AWS account ID
 data "aws_caller_identity" "current" {}
 
+# Create secrets in AWS Secrets Manager from terraform variables
+resource "aws_secretsmanager_secret" "groq_api_key" {
+  name = var.groq_api_key_secret_id
+}
+
+resource "aws_secretsmanager_secret_version" "groq_api_key" {
+  secret_id     = aws_secretsmanager_secret.groq_api_key.id
+  secret_string = var.groq_api_key_value
+}
+
+resource "aws_secretsmanager_secret" "bitbucket_app_password" {
+  name = var.jenkins_bitbucket_app_password_secret_id
+}
+
+resource "aws_secretsmanager_secret_version" "bitbucket_app_password" {
+  secret_id     = aws_secretsmanager_secret.bitbucket_app_password.id
+  secret_string = var.jenkins_bitbucket_app_password_value
+}
+
 # S3 Buckets for API Gateway automation
 resource "aws_s3_bucket" "automation" {
   bucket = var.jenkins_template_s3_bucket
