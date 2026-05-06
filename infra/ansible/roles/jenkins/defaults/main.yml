@@ -1,14 +1,22 @@
 jenkins_admin_user: admin
 jenkins_admin_password: "{{ lookup('ansible.builtin.password', playbook_dir ~ '/.generated/jenkins-admin-password chars=ascii_letters,digits length=24') }}"
-jenkins_bitbucket_owner: "your-workspace"
-jenkins_bitbucket_repo: "your-repo"
-jenkins_bitbucket_branch: "develop"
-jenkins_openapi_file_path: "openapi-definition.json"
-jenkins_template_s3_bucket: "your-s3-bucket"
-jenkins_base_branch: "develop"
-jenkins_repo_target_path: "openapi-definition.json"
-jenkins_bitbucket_username: "set-inventory-or-vault"
-jenkins_bitbucket_app_password: "set-inventory-or-vault"
+
+# Bitbucket repo details from the repository URL:
+# https://bitbucket.org/sim33_k/terraformscript/src/development/
+jenkins_bitbucket_owner: "sim33_k"
+jenkins_bitbucket_repo: "terraformscript"
+jenkins_bitbucket_branch: "development"
+
+# Path inside the Bitbucket repo where the OpenAPI templates live.
+jenkins_template_repo_dir: "api-deployment/api-gateway/templates"
+
+# S3 bucket shared by SES -> Parser -> Patcher workflow.
+jenkins_template_s3_bucket: "digiratina-api-gw-automation-ap-south-1-20260424-9f3c"
+
+jenkins_base_branch: "development"
+jenkins_bitbucket_username: "sim33_k-admin"
+jenkins_bitbucket_app_password: ""
+jenkins_bitbucket_app_password_secret_id: "set-inventory-or-vault"
 jenkins_plugin_manager_version: "2.14.0"
 jenkins_plugins:
   - configuration-as-code

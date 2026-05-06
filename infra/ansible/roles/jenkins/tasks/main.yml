@@ -99,6 +99,44 @@
     group: jenkins
     mode: "0644"
 
+- name: Validate Jenkins variables
+  assert:
+    that:
+      - jenkins_admin_user | length > 0
+      - jenkins_admin_password | length > 0
+      - jenkins_bitbucket_owner != 'your-workspace'
+      - jenkins_bitbucket_repo != 'your-repo'
+      - jenkins_bitbucket_branch == 'development'
+      - jenkins_base_branch == 'development'
+      - jenkins_template_repo_dir | length > 0
+      - jenkins_template_s3_bucket != 'your-s3-bucket'
+      - jenkins_bitbucket_username != 'set-inventory-or-vault'
+      - jenkins_bitbucket_app_password | length > 0 or jenkins_bitbucket_app_password_secret_id != 'set-inventory-or-vault'
+    fail_msg: >-
+      One or more Jenkins variables are missing or still set to placeholders.
+
+- name: Load Bitbucket app password from AWS Secrets Manager
+  command: >-
+    aws secretsmanager get-secret-value
+    --secret-id {{ jenkins_bitbucket_app_password_secret_id }}
+    --query SecretString
+    --output text
+  register: bitbucket_app_password_secret
+  changed_when: false
+  no_log: true
+  when:
+    - jenkins_bitbucket_app_password | length == 0
+    - jenkins_bitbucket_app_password_secret_id != 'set-inventory-or-vault'
+
+- name: Set Bitbucket app password from secret value
+  set_fact:
+    jenkins_bitbucket_app_password: "{{ bitbucket_app_password_secret.stdout }}"
+  no_log: true
+  when:
+    - bitbucket_app_password_secret is defined
+    - bitbucket_app_password_secret.stdout is defined
+    - bitbucket_app_password_secret.stdout | length > 0
+
 - name: Configure Jenkins startup options
   lineinfile:
     path: /etc/sysconfig/jenkins
@@ -118,10 +156,9 @@
     - { key: 'BITBUCKET_OWNER', value: '{{ jenkins_bitbucket_owner }}' }
     - { key: 'BITBUCKET_REPO', value: '{{ jenkins_bitbucket_repo }}' }
     - { key: 'BITBUCKET_BRANCH', value: '{{ jenkins_bitbucket_branch }}' }
-    - { key: 'OPENAPI_FILE_PATH', value: '{{ jenkins_openapi_file_path }}' }
+    - { key: 'TEMPLATE_REPO_DIR', value: '{{ jenkins_template_repo_dir }}' }
     - { key: 'TEMPLATE_S3_BUCKET', value: '{{ jenkins_template_s3_bucket }}' }
     - { key: 'BASE_BRANCH', value: '{{ jenkins_base_branch }}' }
-    - { key: 'REPO_TARGET_PATH', value: '{{ jenkins_repo_target_path }}' }
     - { key: 'BITBUCKET_USERNAME', value: '{{ jenkins_bitbucket_username }}' }
     - { key: 'BITBUCKET_APP_PASSWORD', value: '{{ jenkins_bitbucket_app_password }}' }
 

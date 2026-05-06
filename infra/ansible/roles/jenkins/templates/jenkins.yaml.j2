@@ -39,7 +39,8 @@ export BITBUCKET_REPO="${BITBUCKET_REPO}"
 export BITBUCKET_BRANCH="${BITBUCKET_BRANCH}"
 export BITBUCKET_USERNAME="${BITBUCKET_USERNAME}"
 export BITBUCKET_APP_PASSWORD="${BITBUCKET_APP_PASSWORD}"
-export FILE_PATH_IN_REPO="api-deployment/api-gateway/templates/${API_TYPE}-${ENVIRONMENT}.json"
+export TEMPLATE_REPO_DIR="${TEMPLATE_REPO_DIR}"
+export FILE_PATH_IN_REPO="${TEMPLATE_REPO_DIR}/${API_TYPE}-${ENVIRONMENT}.json"
 export S3_BUCKET="${TEMPLATE_S3_BUCKET}"
 export S3_KEY="templates/${API_TYPE}-${ENVIRONMENT}.json"
 
@@ -63,6 +64,9 @@ if [[ -z "${PATCHED_S3_KEY}" ]]; then
   exit 1
 fi
 
+template_name="${PATCHED_S3_KEY##*/}"
+template_name="${template_name%-patched-*}.json"
+
 export BITBUCKET_OWNER="${BITBUCKET_OWNER}"
 export BITBUCKET_REPO="${BITBUCKET_REPO}"
 export BASE_BRANCH="${BASE_BRANCH}"
@@ -70,7 +74,8 @@ export BITBUCKET_USERNAME="${BITBUCKET_USERNAME}"
 export BITBUCKET_APP_PASSWORD="${BITBUCKET_APP_PASSWORD}"
 export S3_BUCKET="${TEMPLATE_S3_BUCKET}"
 export S3_KEY="${PATCHED_S3_KEY}"
-export REPO_TARGET_PATH="${REPO_TARGET_PATH}"
+export TEMPLATE_REPO_DIR="${TEMPLATE_REPO_DIR}"
+export REPO_TARGET_PATH="${TEMPLATE_REPO_DIR}/${template_name}"
 export PR_TITLE="api-gw-update-$(date +%Y%m%d-%H%M%S)"
 export PR_DESCRIPTION="Automated API Gateway template update from ${PATCHED_S3_KEY}"
 
