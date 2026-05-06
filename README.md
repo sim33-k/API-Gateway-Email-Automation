@@ -32,11 +32,16 @@ AWS SES receives the email and stores the raw content in S3 under `raw-emails/`.
 
 The Parser Lambda triggers the `export-api-template-{environment}` Jenkins job via the Jenkins REST API. Jenkins pulls the latest code from the `develop` branch of the BitBucket repository and uploads the current `openapi-definition.json` to S3 under `templates/`, ensuring the automation always works from the most up-to-date template.
 
-### Step 4 — AI Parsing
+### Step 4 — AI Parsing & API Type Detection
 
 The Parser Lambda sends the raw email body to the Groq AI API running the LLaMA 3.3 70B model. The AI extracts the target environment, all endpoints to add or update, and all endpoints to delete. It also handles markdown tables, plain text, mixed formatting, and inconsistent casing.
 
-The structured parsed result is saved to S3 under `parsed/`.
+The Parser then analyzes the extracted endpoint paths to determine the **API type**:
+- Paths with `/private/` → private template selected
+- Paths with `/public/` → public template selected
+- Mixed or no prefix → defaults to private
+
+The structured parsed result (including detected api_type and resolved template_key) is saved to S3 under `parsed/`.
 
 ### Step 5 — Patching
 
@@ -138,18 +143,26 @@ To add a new service, update the `SERVICE_NLB_MAP` dictionary in `lambdas/patche
 
 ---
 
-## Environment Support
+## Environment and API Type Support
 
-The system supports four environments:
+The system supports four environments and automatically detects whether endpoints are **public** or **private**:
 
-| Environment | Template Key |
-|---|---|
-| QA | `templates/private-qa.json` |
-| DEV | `templates/private-dev.json` |
-| UAT | `templates/private-uat.json` |
-| PROD | `templates/private-prod.json` |
+| Environment | Private Template | Public Template |
+|---|---|---|
+| QA | `templates/private-qa.json` | `templates/public-qa.json` |
+| DEV | `templates/private-dev.json` | `templates/public-dev.json` |
+| UAT | `templates/private-uat.json` | `templates/public-uat.json` |
+| PROD | `templates/private-prod.json` | `templates/public-prod.json` |
 
-The environment is resolved from the email body using both AI extraction and a regex fallback. It is case-insensitive — `qa`, `Qa`, and `QA` all resolve correctly.
+**Environment Resolution:** Resolved from the email body using both AI extraction and a regex fallback. It is case-insensitive — `qa`, `Qa`, and `QA` all resolve correctly.
+
+**API Type Detection:** The Parser Lambda automatically detects the API type by inspecting endpoint paths:
+- If any endpoint path contains `/private/`, the system selects the **private** template (e.g., `/private/v1/deals/123`)
+- If any endpoint path contains `/public/`, the system selects the **public** template (e.g., `/public/v1/health`)
+- If paths are mixed, the first match (private takes precedence) is used
+- If no prefix is detected, defaults to **private**
+
+This allows developers to request changes to both public and private APIs in a single email, and the system automatically selects the correct template.
 
 ---
 
@@ -181,7 +194,7 @@ s3://your-bucket/
 | Variable | Description |
 |---|---|
 | `BUCKET` | S3 bucket name |
-| `TEMPLATE_KEY` | S3 key of the OpenAPI template to patch |
+| `TEMPLATE_KEY` | *(Optional)* S3 key of the OpenAPI template to patch. Normally passed by Parser Lambda at runtime based on detected API type and environment. Only needed if Patcher is invoked independently. |
 | `OVERWRITE_TEMPLATE` | Set to `true` to overwrite the source template after patching |
 
 ---
