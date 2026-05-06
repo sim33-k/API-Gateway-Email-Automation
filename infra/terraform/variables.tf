@@ -1,7 +1,7 @@
 variable "aws_region" {
 	description = "AWS region"
 	type        = string
-	default     = "ap-south-1"
+	default     = "ap-southeast-1"
 }
 
 variable "your_ip" {
@@ -27,11 +27,29 @@ variable "key_pair_name" {
 variable "jenkins_template_s3_bucket" {
 	description = "S3 bucket used by the Jenkins template sync jobs"
 	type        = string
-	default     = "digiratina-api-gw-automation-ap-south-1-20260424-9f3c"
+	default     = "digiratina-api-gw-automation-ap-southeast-1-20260424-9f3c"
 }
 
 variable "jenkins_bitbucket_app_password_secret_id" {
 	description = "AWS Secrets Manager secret name or ARN that stores the Bitbucket app password"
 	type        = string
 	default     = ""
+}
+
+variable "groq_api_key_secret_id" {
+	description = "AWS Secrets Manager secret name or ARN that stores the GROQ API key"
+	type        = string
+	default     = "digiratina-groq-api-key"
+}
+
+variable "lambda_parser_name" {
+	description = "Name of the parser Lambda function"
+	type        = string
+	default     = "api-gw-email-parser"
+}
+
+variable "lambda_patcher_name" {
+	description = "Name of the patcher Lambda function"
+	type        = string
+	default     = "api-gw-json-patcher"
 }

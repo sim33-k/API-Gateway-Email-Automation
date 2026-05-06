@@ -6,7 +6,6 @@ from datetime import datetime
 s3 = boto3.client('s3')
 
 BUCKET = os.environ['BUCKET']
-OVERWRITE_TEMPLATE = os.environ.get('OVERWRITE_TEMPLATE', 'false').lower() == 'true'
 
 SERVICE_NLB_MAP = {
     "admin-portal-service": "none_prod_nlb_port_adminp_service",

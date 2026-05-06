@@ -6,7 +6,21 @@ import requests
 from typing import Optional
 from groq import Groq
 
-client = Groq(api_key=os.environ["API_KEY"])
+# Initialize AWS Secrets Manager client
+secrets_client = boto3.client('secretsmanager')
+
+def get_groq_api_key():
+    """Fetch GROQ API key from AWS Secrets Manager"""
+    secret_id = os.environ.get('GROQ_API_KEY_SECRET_ID', 'digiratina-groq-api-key')
+    try:
+        response = secrets_client.get_secret_value(SecretId=secret_id)
+        return response['SecretString']
+    except Exception as e:
+        print(f"ERROR fetching GROQ API key from Secrets Manager: {e}")
+        raise
+
+groq_api_key = get_groq_api_key()
+client = Groq(api_key=groq_api_key)
 s3 = boto3.client('s3')
 
 BUCKET = os.environ['BUCKET']
