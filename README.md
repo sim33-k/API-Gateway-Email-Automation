@@ -14,10 +14,10 @@ An end-to-end serverless automation system that processes API Gateway change req
 
 ### Quick Start
 
-1. Copy and customize environment variables:
+1. Copy and customize secret values:
    ```bash
    cp .env.example .env.local
-   # Edit .env.local - add your IP, AMI ID, Groq API key, Bitbucket password
+   # Edit .env.local - add your Groq API key and Bitbucket password only
    ```
 
 2. Run the bootstrap script (does everything - creates secrets, provisions infrastructure):
@@ -30,6 +30,8 @@ That's it. Terraform will:
 - Create all infrastructure (Jenkins, S3, Lambdas, SES, SNS)
 - Configure Jenkins automatically
 - Output the Jenkins URL
+
+Infrastructure values like `your_ip` and `ami_id` are read from [infra/terraform/terraform.tfvars](infra/terraform/terraform.tfvars), so you do not need to export them in your shell.
 
 ---
 

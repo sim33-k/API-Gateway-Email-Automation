@@ -2,7 +2,7 @@
 set -euo pipefail
 
 # Bootstrap script: Provisions infrastructure with Terraform
-# Terraform creates secrets in Secrets Manager automatically
+# Infrastructure inputs come from infra/terraform/terraform.tfvars
 
 echo "=== API Gateway Email Automation Bootstrap ==="
 echo ""
@@ -11,19 +11,15 @@ echo ""
 if [ ! -f ".env.local" ]; then
   echo "❌ .env.local not found. Create it first:"
   echo "   cp .env.example .env.local"
-  echo "   # Edit .env.local with your actual values"
+  echo "   # Edit .env.local with your secret values only"
   exit 1
 fi
 
-# Source environment variables
+# Source secret values only
 source .env.local
 
 # Validate required variables
 REQUIRED_VARS=(
-  "TF_VAR_your_ip"
-  "TF_VAR_ami_id"
-  "TF_VAR_instance_type"
-  "TF_VAR_key_pair_name"
   "TF_VAR_groq_api_key_value"
   "TF_VAR_jenkins_bitbucket_app_password_value"
 )
