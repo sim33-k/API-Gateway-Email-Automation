@@ -10,6 +10,26 @@ An end-to-end serverless automation system that processes API Gateway change req
 
 ---
 
+## Jenkins Bootstrap
+
+Before the automation can run, provision Jenkins once with the Bitbucket app password secret ID. Replace the secret name below with the AWS Secrets Manager secret that stores the Bitbucket app password.
+
+**Prerequisites:**
+- AWS credentials configured locally (e.g., `aws configure` or environment variables `AWS_ACCESS_KEY_ID` and `AWS_SECRET_ACCESS_KEY`)
+- Your AWS credentials must have permission to create EC2 instances, IAM roles, security groups, and key pairs
+
+**Provision:**
+
+```bash
+export TF_VAR_jenkins_bitbucket_app_password_secret_id="digiratina-bitbucket-app-password"
+cd "infra/terraform"
+terraform apply
+```
+
+Terraform uses your AWS credentials to create the infrastructure. The Jenkins EC2 instance is attached an IAM role so Jenkins can write to S3 and read the Bitbucket app password from AWS Secrets Manager. No AWS access key or password is stored in the repo.
+
+---
+
 ## The Problem It Solves
 
 Every API Gateway change required a developer to manually open a large OpenAPI JSON template, locate or create the correct path block, write the full method configuration including VPC link, NLB URI, CORS headers, request parameters, and Cognito authorizer, then manually update the OPTIONS `Access-Control-Allow-Methods` header and do all of this without introducing a JSON syntax error that would break the entire API Gateway deployment.
@@ -204,13 +224,27 @@ s3://your-bucket/
 ## Jenkins Jobs
 
 ### `export-api-template`
-Parameterized job that accepts `api_type` (public or private) and `environment` (dev, qa, uat, or prod). Pulls the corresponding template file from BitBucket (`terraformscript/api-deployment/api-gateway/templates/{api_type}-{environment}.json`) and uploads it to S3 as `templates/{api_type}-{environment}.json`. Triggered by the Parser Lambda with the detected api_type and environment values.
+Parameterized job that accepts `api_type` (public or private) and `environment` (dev, qa, uat, or prod). Pulls the corresponding template file from BitBucket at `api-deployment/api-gateway/templates/{api_type}-{environment}.json` on the `development` branch and uploads it to S3 as `templates/{api_type}-{environment}.json`. Triggered by the Parser Lambda with the detected api_type and environment values.
 
 ### `raise-api-gw-pr`
-Downloads the patched template from S3, commits it to a new feature branch, and raises a Pull Request against `develop` on BitBucket. Triggered by the Patcher Lambda after patching is complete. Accepts the patched S3 key as a build parameter.
+Downloads the patched template from S3, derives the target repo path from the patched S3 key, commits it to a new feature branch, and raises a Pull Request against `development` on BitBucket. Triggered by the Patcher Lambda after patching is complete. Accepts the patched S3 key as a build parameter.
 
 ### `{environment}-deployment-script`
 Existing Terraform deployment jobs. Triggered after PR merge. Runs `terraform plan` and `terraform apply` using the appropriate workspace and tfvars file.
+
+## Jenkins / Ansible Values
+
+| Variable | Source |
+|---|---|
+| `jenkins_bitbucket_owner` | Bitbucket workspace from the repo URL: `sim33_k` |
+| `jenkins_bitbucket_repo` | Bitbucket repository name: `terraformscript` |
+| `jenkins_bitbucket_branch` | Repo branch used by Jenkins: `development` |
+| `jenkins_base_branch` | PR target branch: `development` |
+| `jenkins_template_repo_dir` | Template path inside the repo: `api-deployment/api-gateway/templates` |
+| `jenkins_template_s3_bucket` | S3 bucket you provided: `digiratina-api-gw-automation-ap-south-1-20260424-9f3c` |
+| `jenkins_bitbucket_username` | Bitbucket user used for API access: `sim33_k-admin` |
+| `jenkins_bitbucket_app_password_secret_id` | AWS Secrets Manager secret name/ARN that stores the Bitbucket app password |
+| `jenkins_bitbucket_app_password` | Optional direct value for local testing only; leave empty in normal deployments |
 
 ---
 
