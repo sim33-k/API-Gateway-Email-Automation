@@ -27,7 +27,7 @@ An end-to-end serverless automation system that processes API Gateway change req
 
 That's it. Terraform will:
 - Store your API key and Bitbucket password in AWS Secrets Manager
-- Create all infrastructure (Jenkins, S3, Lambdas, SES, SNS)
+- Create all infrastructure (Jenkins, S3, SES receipt rules, Lambda IAM wiring)
 - Configure Jenkins automatically
 - Output the Jenkins URL
 
@@ -90,6 +90,8 @@ The team reviews the Pull Request on BitBucket and merges it into `develop`.
 ### Step 8 — Terraform Deployment
 
 The existing Jenkins deployment job for the target environment (`qa-deployment-script`, `dev-deployment-script`, `uat-deployment-script`, or `prod-deployment-script`) runs Terraform using the appropriate workspace and tfvars file, applying the changes to AWS API Gateway infrastructure.
+
+SES now uses the verified recipient `apigw-requests@simaakniyaz.site` with the active receipt rule set `default-rule-set`. The receipt rule stores raw emails in S3 under `raw-emails/` and invokes the parser Lambda.
 
 ---
 
@@ -286,7 +288,7 @@ The `message_id` links directly back to the original raw email at `raw-emails/{m
 ## Future Improvements
 
 - Polling or webhook callback to confirm Jenkins template sync before patching begins
-- SNS or SES notification email back to the developer confirming the PR was raised
+- Optional SES notification email back to the developer confirming the PR was raised
 
 ---
 

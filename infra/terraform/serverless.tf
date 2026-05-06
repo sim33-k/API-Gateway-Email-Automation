@@ -32,11 +32,6 @@ resource "aws_s3_bucket_versioning" "automation" {
   }
 }
 
-# SNS Topic for Lambda notifications
-resource "aws_sns_topic" "automation" {
-  name = "api-gw-automation-notifications"
-}
-
 # IAM Role for Lambda Functions
 resource "aws_iam_role" "lambda_automation" {
   name = "lambda-api-gw-automation-role"
@@ -55,7 +50,7 @@ resource "aws_iam_role" "lambda_automation" {
   })
 }
 
-# IAM Policy for Lambda to access S3, Secrets Manager, SNS, and CloudWatch
+# IAM Policy for Lambda to access S3, Secrets Manager, and CloudWatch
 resource "aws_iam_role_policy" "lambda_automation" {
   name = "lambda-api-gw-automation-policy"
   role = aws_iam_role.lambda_automation.id
@@ -88,15 +83,6 @@ resource "aws_iam_role_policy" "lambda_automation" {
       {
         Effect = "Allow"
         Action = [
-          "sns:Publish"
-        ]
-        Resource = [
-          aws_sns_topic.automation.arn
-        ]
-      },
-      {
-        Effect = "Allow"
-        Action = [
           "lambda:InvokeFunction"
         ]
         Resource = [
@@ -118,9 +104,46 @@ resource "aws_iam_role_policy" "lambda_automation" {
   })
 }
 
-# SES Configuration Set (for tracking email delivery)
-resource "aws_ses_configuration_set" "automation" {
-  name = "api-gw-automation"
+# SES Receipt Rule Set for ap-south-1 style inbound email handling
+resource "aws_ses_receipt_rule_set" "apigw" {
+  rule_set_name = "default-rule-set"
+}
+
+# Activate the receipt rule set
+resource "aws_ses_active_receipt_rule_set" "apigw" {
+  rule_set_name = aws_ses_receipt_rule_set.apigw.rule_set_name
+}
+
+# Receipt rule that stores raw emails in S3 and invokes the parser Lambda
+resource "aws_ses_receipt_rule" "apigw_requests" {
+  name          = "apigw-requests-rule"
+  rule_set_name = aws_ses_receipt_rule_set.apigw.rule_set_name
+  enabled       = true
+  scan_enabled  = true
+
+  recipients = ["apigw-requests@simaakniyaz.site"]
+
+  s3_action {
+    position          = 1
+    bucket_name       = aws_s3_bucket.automation.id
+    object_key_prefix = "raw-emails/"
+  }
+
+  lambda_action {
+    position        = 2
+    function_arn    = "arn:aws:lambda:${var.aws_region}:${data.aws_caller_identity.current.account_id}:function:${var.lambda_parser_name}"
+    invocation_type = "Event"
+  }
+}
+
+# Allow SES to invoke the parser Lambda
+resource "aws_lambda_permission" "allow_ses_invoke_parser" {
+  statement_id   = "AllowSESToInvokeParser"
+  action         = "lambda:InvokeFunction"
+  function_name  = var.lambda_parser_name
+  principal      = "ses.amazonaws.com"
+  source_arn     = aws_ses_receipt_rule.apigw_requests.arn
+  source_account = data.aws_caller_identity.current.account_id
 }
 
 # Outputs
@@ -129,9 +152,9 @@ output "s3_bucket_name" {
   value       = aws_s3_bucket.automation.id
 }
 
-output "sns_topic_arn" {
-  description = "SNS topic for notifications"
-  value       = aws_sns_topic.automation.arn
+output "ses_receipt_rule_set_name" {
+  description = "Active SES receipt rule set name"
+  value       = aws_ses_receipt_rule_set.apigw.rule_set_name
 }
 
 output "lambda_role_arn" {
@@ -139,7 +162,7 @@ output "lambda_role_arn" {
   value       = aws_iam_role.lambda_automation.arn
 }
 
-output "ses_configuration_set_name" {
-  description = "SES configuration set name"
-  value       = aws_ses_configuration_set.automation.name
+output "ses_receipt_rule_name" {
+  description = "SES receipt rule name"
+  value       = aws_ses_receipt_rule.apigw_requests.name
 }
