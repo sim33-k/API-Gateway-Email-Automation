@@ -123,19 +123,6 @@ resource "aws_ses_configuration_set" "automation" {
   name = "api-gw-automation"
 }
 
-# SES Event Destination for SNS notifications
-resource "aws_ses_event_destination" "automation" {
-  name                   = "api-gw-automation-events"
-  configuration_set_name = aws_ses_configuration_set.automation.name
-  enabled                = true
-  matching_types         = ["Bounce", "Complaint", "Delivery"]
-  type                   = "SNS"
-
-  sns_destination {
-    topic_arn = aws_sns_topic.automation.arn
-  }
-}
-
 # Outputs
 output "s3_bucket_name" {
   description = "S3 bucket for automation workflow"
