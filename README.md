@@ -30,7 +30,7 @@ AWS SES receives the email and stores the raw content in S3 under `raw-emails/`.
 
 ### Step 3 — Fetch Latest Template
 
-The Parser Lambda triggers the `export-api-template-{environment}` Jenkins job via the Jenkins REST API. Jenkins pulls the latest code from the `develop` branch of the BitBucket repository and uploads the current `openapi-definition.json` to S3 under `templates/`, ensuring the automation always works from the most up-to-date template.
+The Parser Lambda passes the detected `api_type` (public/private) and `environment` as parameters to the `export-api-template` Jenkins job via the Jenkins REST API. Jenkins pulls the corresponding template file from the BitBucket repository (`terraformscript/api-deployment/api-gateway/templates/{api_type}-{environment}.json`) and uploads it to S3 as `templates/{api_type}-{environment}.json`.
 
 ### Step 4 — AI Parsing & API Type Detection
 
@@ -201,8 +201,8 @@ s3://your-bucket/
 
 ## Jenkins Jobs
 
-### `export-api-template-{environment}`
-Pulls the latest `openapi-definition.json` from the `develop` branch of the BitBucket repository and uploads it to the S3 `templates/` prefix before patching begins. Triggered by the Parser Lambda via the Jenkins REST API.
+### `export-api-template`
+Parameterized job that accepts `api_type` (public or private) and `environment` (dev, qa, uat, or prod). Pulls the corresponding template file from BitBucket (`terraformscript/api-deployment/api-gateway/templates/{api_type}-{environment}.json`) and uploads it to S3 as `templates/{api_type}-{environment}.json`. Triggered by the Parser Lambda with the detected api_type and environment values.
 
 ### `raise-api-gw-pr`
 Downloads the patched template from S3, commits it to a new feature branch, and raises a Pull Request against `develop` on BitBucket. Triggered by the Patcher Lambda after patching is complete. Accepts the patched S3 key as a build parameter.
