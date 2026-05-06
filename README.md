@@ -187,7 +187,9 @@ s3://your-bucket/
 | `BUCKET` | S3 bucket name |
 | `API_KEY` | Groq API key |
 | `PATCHER` | Patcher Lambda function name |
-| `JENKINS_URL` | Internal Jenkins URL e.g. `http://10.0.1.45:8080` |
+| `JENKINS_URL` | Jenkins base URL (e.g., `http://10.0.1.45:8080`) |
+| `JENKINS_USER` | Jenkins username for API calls |
+| `JENKINS_TOKEN` | Jenkins API token (store in Secrets Manager, fetch at runtime) |
 
 ### Patcher Lambda
 

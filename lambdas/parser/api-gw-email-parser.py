@@ -2,6 +2,7 @@ import json
 import boto3
 import email
 import os
+import requests
 from typing import Optional
 from groq import Groq
 
@@ -122,6 +123,43 @@ def resolve_template_key(environment: str, api_type: str = 'private') -> Optiona
     return f"templates/{api}-{env.lower()}.json"
 
 
+def trigger_jenkins_template_export(api_type: str, environment: str) -> bool:
+    """
+    Trigger the Jenkins export-api-template-job with api_type and environment parameters.
+    Returns True if successful, raises exception otherwise.
+    """
+    jenkins_url = os.environ.get('JENKINS_URL')
+    jenkins_user = os.environ.get('JENKINS_USER')
+    jenkins_token = os.environ.get('JENKINS_TOKEN')
+    
+    if not all([jenkins_url, jenkins_user, jenkins_token]):
+        print("WARNING: Jenkins credentials not configured, skipping template export")
+        return False
+    
+    env_lower = environment.lower().strip()
+    api_lower = api_type.lower().strip()
+    
+    job_url = f"{jenkins_url}/job/export-api-template-job/buildWithParameters"
+    params = {
+        'API_TYPE': api_lower,
+        'ENVIRONMENT': env_lower
+    }
+    
+    try:
+        response = requests.post(
+            job_url,
+            params=params,
+            auth=(jenkins_user, jenkins_token),
+            timeout=10
+        )
+        response.raise_for_status()
+        print(f"✓ Jenkins job triggered: export-api-template-job with API_TYPE={api_lower}, ENVIRONMENT={env_lower}")
+        return True
+    except Exception as e:
+        print(f"ERROR triggering Jenkins job: {str(e)}")
+        raise
+
+
 def lambda_handler(event, context):
     ses_message = event['Records'][0]['ses']
     message_id = ses_message['mail']['messageId']
@@ -175,6 +213,13 @@ def lambda_handler(event, context):
 
     if not template_key:
         raise ValueError(f"Unable to resolve template key for environment: {environment}")
+
+    # Trigger Jenkins to fetch the latest template from BitBucket to S3
+    try:
+        trigger_jenkins_template_export(api_type, environment)
+    except Exception as e:
+        print(f"Failed to trigger Jenkins template export: {e}")
+        raise
 
     parsed_key = f"parsed/{message_id}.json"
     s3.put_object(

@@ -15,13 +15,19 @@ jenkins:
 jobs:
   - script: |
       freeStyleJob('export-api-template-job') {
-        description('Fetches OpenAPI JSON from Bitbucket and uploads it to S3 templates/private-{environment}.json')
+        description('Fetches OpenAPI JSON from Bitbucket and uploads it to S3 templates/{api_type}-{environment}.json')
         parameters {
+          choiceParam('API_TYPE', ['private', 'public'], 'API type')
           choiceParam('ENVIRONMENT', ['qa', 'dev', 'uat', 'prod'], 'Target environment')
         }
         steps {
           shell('''#!/usr/bin/env bash
 set -euo pipefail
+
+case "${API_TYPE}" in
+  private|public) ;;
+  *) echo "Unsupported API_TYPE=${API_TYPE}" >&2; exit 1 ;;
+esac
 
 case "${ENVIRONMENT}" in
   qa|dev|uat|prod) ;;
@@ -33,9 +39,9 @@ export BITBUCKET_REPO="${BITBUCKET_REPO}"
 export BITBUCKET_BRANCH="${BITBUCKET_BRANCH}"
 export BITBUCKET_USERNAME="${BITBUCKET_USERNAME}"
 export BITBUCKET_APP_PASSWORD="${BITBUCKET_APP_PASSWORD}"
-export FILE_PATH_IN_REPO="${OPENAPI_FILE_PATH}"
+export FILE_PATH_IN_REPO="api-deployment/api-gateway/templates/${API_TYPE}-${ENVIRONMENT}.json"
 export S3_BUCKET="${TEMPLATE_S3_BUCKET}"
-export S3_KEY="templates/private-${ENVIRONMENT}.json"
+export S3_KEY="templates/${API_TYPE}-${ENVIRONMENT}.json"
 
 /usr/local/bin/export-api-template.sh
 ''')
