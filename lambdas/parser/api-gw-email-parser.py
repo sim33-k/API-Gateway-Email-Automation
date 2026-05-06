@@ -2,18 +2,13 @@ import json
 import boto3
 import email
 import os
+from typing import Optional
 from groq import Groq
 
 client = Groq(api_key=os.environ["API_KEY"])
 s3 = boto3.client('s3')
 
 BUCKET = os.environ['BUCKET']
-ENV_TO_TEMPLATE_KEY = {
-        "QA": "templates/private-qa.json",
-        "DEV": "templates/private-dev.json",
-        "UAT": "templates/private-uat.json",
-        "PROD": "templates/private-prod.json"
-}
 
 
 def parse_email_with_ai(body: str, sender: str, subject: str) -> dict:
@@ -94,10 +89,37 @@ Subject: {subject}
     return json.loads(text)
 
 
-def resolve_template_key(environment: str) -> str | None:
+def detect_api_type_from_paths(endpoints: list) -> str:
+    """
+    Detect whether the API is public or private by examining endpoint paths.
+    Returns 'public' or 'private' based on path prefixes.
+    """
+    for ep in endpoints:
+        path = ep.get('path', '').lower()
+        if '/private/' in path:
+            return 'private'
+        if '/public/' in path:
+            return 'public'
+    # Default to private if no clear indicator found
+    return 'private'
+
+
+def resolve_template_key(environment: str, api_type: str = 'private') -> Optional[str]:
+    """
+    Resolve S3 template key from environment and api_type.
+    E.g., ('QA', 'private') -> 'templates/private-qa.json'
+    """
     if not environment:
         return None
-    return ENV_TO_TEMPLATE_KEY.get(environment.upper().strip())
+    env = environment.upper().strip()
+    api = api_type.lower().strip()
+    
+    if env not in ['DEV', 'QA', 'UAT', 'PROD']:
+        return None
+    if api not in ['public', 'private']:
+        api = 'private'
+    
+    return f"templates/{api}-{env.lower()}.json"
 
 
 def lambda_handler(event, context):
@@ -132,7 +154,12 @@ def lambda_handler(event, context):
     environment = env_match.group(1).upper() if env_match else parsed.get("environment")
     endpoints_to_add = parsed.get('endpoints_to_add', [])
     endpoints_to_delete = parsed.get('endpoints_to_delete', [])
-    template_key = resolve_template_key(environment)
+    
+    # Detect api_type (public/private) from endpoint paths
+    all_endpoints = endpoints_to_add + endpoints_to_delete
+    api_type = detect_api_type_from_paths(all_endpoints)
+    
+    template_key = resolve_template_key(environment, api_type)
 
     if not is_api_change_request:
         return {
@@ -141,6 +168,7 @@ def lambda_handler(event, context):
                 "message": "Not an API Gateway change request",
                 "message_id": message_id,
                 "environment": environment,
+                "api_type": api_type,
                 "template_key": template_key
             })
         }
@@ -155,6 +183,7 @@ def lambda_handler(event, context):
         Body=json.dumps({
             "is_api_change_request": is_api_change_request,
             "environment": environment,
+            "api_type": api_type,
             "template_key": template_key,
             "endpoints_to_add": endpoints_to_add,
             "endpoints_to_delete": endpoints_to_delete
@@ -170,7 +199,8 @@ def lambda_handler(event, context):
             "parsed_key": parsed_key,
             "message_id": message_id,
             "template_key": template_key,
-            "environment": environment
+            "environment": environment,
+            "api_type": api_type
         })
     )
 
@@ -179,6 +209,7 @@ def lambda_handler(event, context):
         "body": json.dumps({
             "message_id": message_id,
             "environment": environment,
+            "api_type": api_type,
             "template_key": template_key,
             "endpoints_to_add_count": len(endpoints_to_add),
             "endpoints_to_delete_count": len(endpoints_to_delete)

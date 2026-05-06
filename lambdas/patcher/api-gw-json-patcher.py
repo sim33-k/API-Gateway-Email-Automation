@@ -6,7 +6,6 @@ from datetime import datetime
 s3 = boto3.client('s3')
 
 BUCKET = os.environ['BUCKET']
-TEMPLATE_KEY = os.environ['TEMPLATE_KEY']
 OVERWRITE_TEMPLATE = os.environ.get('OVERWRITE_TEMPLATE', 'false').lower() == 'true'
 
 SERVICE_NLB_MAP = {
@@ -251,6 +250,8 @@ def build_method_block(ep, nlb_var):
 def lambda_handler(event, context):
     parsed_key = event['parsed_key']
     message_id = event['message_id']
+    # Use template_key from event (passed by parser), fallback to env var if needed
+    template_key = event.get('template_key') or os.environ.get('TEMPLATE_KEY')
 
     parsed_obj = s3.get_object(Bucket=BUCKET, Key=parsed_key)
     parsed_data = json.loads(parsed_obj['Body'].read())
