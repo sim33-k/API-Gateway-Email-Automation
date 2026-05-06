@@ -43,3 +43,14 @@ variable "inventory_output_path" {
   description = "Path where inventory file will be generated"
   type        = string
 }
+
+variable "jenkins_template_s3_bucket" {
+	description = "S3 bucket used by the Jenkins template sync jobs"
+	type        = string
+}
+
+variable "jenkins_bitbucket_app_password_secret_id" {
+  description = "AWS Secrets Manager secret name or ARN that stores the Bitbucket app password"
+  type        = string
+  default     = ""
+}

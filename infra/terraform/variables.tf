@@ -23,3 +23,15 @@ variable "key_pair_name" {
 	description = "Name of the SSH key pair"
 	type        = string
 }
+
+variable "jenkins_template_s3_bucket" {
+	description = "S3 bucket used by the Jenkins template sync jobs"
+	type        = string
+	default     = "digiratina-api-gw-automation-ap-south-1-20260424-9f3c"
+}
+
+variable "jenkins_bitbucket_app_password_secret_id" {
+	description = "AWS Secrets Manager secret name or ARN that stores the Bitbucket app password"
+	type        = string
+	default     = ""
+}

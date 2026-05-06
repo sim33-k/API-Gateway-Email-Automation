@@ -26,5 +26,7 @@ module "jenkins" {
   ansible_inventory_path     = "${path.module}/../ansible/inventory.ini"
   private_key_output_path    = "${path.module}/../ansible/jenkins.pem"
   inventory_output_path      = "${path.module}/../ansible/inventory.ini"
+  jenkins_template_s3_bucket                 = var.jenkins_template_s3_bucket
+  jenkins_bitbucket_app_password_secret_id   = var.jenkins_bitbucket_app_password_secret_id
 }
 

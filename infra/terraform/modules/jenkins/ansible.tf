@@ -28,9 +28,16 @@ resource "null_resource" "run_ansible" {
 
   provisioner "local-exec" {
     command = <<-EOF
+      secret_id="$${TF_VAR_jenkins_bitbucket_app_password_secret_id:-}"
+      if [ -z "$secret_id" ]; then
+        echo "TF_VAR_jenkins_bitbucket_app_password_secret_id is required" >&2
+        exit 1
+      fi
+
       ansible-playbook \
         -i ${var.inventory_output_path} \
         ${var.ansible_playbook_path} \
+        --extra-vars "jenkins_bitbucket_app_password_secret_id=$secret_id" \
         --ssh-extra-args='-o StrictHostKeyChecking=no'
     EOF
   }
